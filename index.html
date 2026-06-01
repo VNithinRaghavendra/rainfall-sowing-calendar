@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sowing Calendar & Rainfall Prediction Dashboard</title>
+    
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-base: #0a110e;
+            --panel-bg: rgba(20, 35, 30, 0.45);
+            --panel-border: rgba(35, 75, 55, 0.3);
+            --text-primary: #f0f5f3;
+            --text-secondary: #a3b8b0;
+            --primary: #12b886;
+            --primary-glow: rgba(18, 184, 134, 0.4);
+            --secondary: #e67e22;
+            --accent-blue: #22a6f2;
+            
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --neutral: #6b7280;
+            
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(18, 184, 134, 0.1) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(194, 109, 43, 0.08) 0px, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .logo-section h1 {
+            font-family: var(--font-display);
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #f0f5f3 30%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-section p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        .control-panel {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .control-panel label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        select {
+            appearance: none;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            padding: 0.75rem 2.5rem 0.75rem 1.25rem;
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        select:focus, select:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .select-wrapper::after {
+            content: "\f078";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+            pointer-events: none;
+            font-size: 0.85rem;
+        }
+
+        /* GRID SYSTEM */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* CARD STYLES */
+        .glass-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 20px;
+            padding: 1.75rem;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(18, 184, 134, 0.5);
+        }
+
+        .panel-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ffffff;
+        }
+
+        .panel-title i {
+            color: var(--primary);
+        }
+
+        /* STATS LIST */
+        .stats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .stat-value span {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-left: 0.25rem;
+        }
+
+        /* SOWING SUITABILITY GAUGE */
+        .gauge-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem 0;
+            border-top: 1px solid var(--panel-border);
+            margin-top: 1rem;
+        }
+
+        .suitability-badge {
+            margin-top: 1rem;
+            padding: 0.5rem 1.25rem;
+            border-radius: 20px;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            text-align: center;
+            width: 100%;
+        }
+
+        .badge-unsuitable { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: #ff6b6b; }
+        .badge-marginal { background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); color: #ffd166; }
+        .badge-ideal { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: #4ade80; }
+
+        /* CHARTS PANEL */
+        .chart-tabs {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 0.75rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: var(--font-display);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            background: rgba(18, 184, 134, 0.1);
+            box-shadow: inset 0 0 10px rgba(18, 184, 134, 0.1);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 380px;
+            width: 100%;
+        }
+
+        /* FORECAST SECTION */
+        .forecast-section {
+            margin-top: 2rem;
+        }
+
+        .section-header-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-header-title i {
+            color: var(--secondary);
+        }
+
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .forecast-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(12px);
+        }
+
+        .forecast-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--secondary);
+            box-shadow: 0 12px 30px rgba(194, 109, 43, 0.15);
+        }
+
+        .forecast-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .week-num {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .forecast-date {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .forecast-body {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 0.5rem 0;
+        }
+
+        .forecast-icon {
+            font-size: 2.2rem;
+            color: var(--accent-blue);
+        }
+
+        .forecast-rain-value {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .rain-num {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1.1;
+            color: #ffffff;
+        }
+
+        .rain-unit {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .card-suitability-badge {
+            align-self: flex-start;
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .forecast-advice {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            flex-grow: 1;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 0.75rem;
+        }
+
+        /* GAUGES SHAPES */
+        .gauge-svg {
+            width: 150px;
+            height: 80px;
+        }
+        
+        .gauge-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.07);
+            stroke-width: 12;
+            stroke-linecap: round;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke-width: 12;
+            stroke-linecap: round;
+            stroke-dasharray: 220;
+            stroke-dashoffset: 220;
+            transition: stroke-dashoffset 1s ease-in-out, stroke 1s ease;
+        }
+
+        .gauge-text {
+            font-family: var(--font-display);
+            font-size: 1.6rem;
+            font-weight: 800;
+            fill: #ffffff;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .forecast-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 1rem;
+            }
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1.5rem;
+            }
+            .forecast-grid {
+                grid-template-columns: 1fr;
+            }
+            .chart-tabs {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- HEADER -->
+        <header>
+            <div class="logo-section">
+                <h1><i class="fa-solid fa-cloud-sun-rain"></i> AgroCast Deployment</h1>
+                <p>Weekly Meteorological Rainfall Prediction & Agronomic Sowing Calendars</p>
+            </div>
+            
+            <div class="control-panel">
+                <label for="subdivision-select">Region:</label>
+                <div class="select-wrapper">
+                    <select id="subdivision-select" onchange="loadRegion(this.value)">
+                        <option>Loading regions...</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- DASHBOARD GRID -->
+        <div class="dashboard-grid">
+            
+            <!-- LEFT PANEL: STATS & SUITABILITY GAUGE -->
+            <div class="glass-panel" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div>
+                    <h2 class="panel-title"><i class="fa-solid fa-chart-line"></i> Historical Profile</h2>
+                    <div class="stats-list">
+                        <div class="stat-item">
+                            <span class="stat-label">Normal Annual Mean</span>
+                            <span class="stat-value" id="stat-mean">--<span>mm</span></span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Driest Year on Record</span>
+                            <span class="stat-value" id="stat-min">--<span>mm</span></span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Wettest Year on Record</span>
+                            <span class="stat-value" id="stat-max">--<span>mm</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gauge-container">
+                    <h2 class="panel-title" style="margin-bottom: 0.75rem;"><i class="fa-solid fa-seedling"></i> Sowing Suitability</h2>
+                    
+                    <svg class="gauge-svg" viewBox="0 0 100 50">
+                        <path class="gauge-bg" d="M 10 45 A 35 35 0 0 1 90 45" />
+                        <path class="gauge-fill" id="gauge-arc" d="M 10 45 A 35 35 0 0 1 90 45" />
+                        <text class="gauge-text" x="50" y="40" id="gauge-score">0%</text>
+                    </svg>
+
+                    <div class="suitability-badge" id="sowing-badge">--</div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: INTERACTIVE GRAPH -->
+            <div class="glass-panel">
+                <div class="chart-tabs">
+                    <button class="tab-btn active" id="tab-test" onclick="switchTab('test')">Model Comparison (2014-2015 Test Partition)</button>
+                    <button class="tab-btn" id="tab-climate" onclick="switchTab('climate')">Monthly Climatological Normals</button>
+                </div>
+                
+                <div class="chart-wrapper">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- OUT-OF-SAMPLE FORECAST / SOWING CALENDAR -->
+        <div class="forecast-section">
+            <h2 class="section-header-title"><i class="fa-solid fa-calendar-days"></i> Farmer Sowing Calendar & 4-Week Forecast (Jan 2016)</h2>
+            <div class="forecast-grid" id="forecast-cards-container">
+                <!-- Forecast Cards will be dynamically injected here -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MAIN DASHBOARD SCRIPT -->
+    <script>
+        let dbData = null;
+        let chartInstance = null;
+        let activeTab = 'test';
+        let currentRegion = 'MADHYA MAHARASHTRA';
+
+        // Load data from exported JSON file
+        async function loadDashboard() {
+            try {
+                const response = await fetch('data.json');
+                dbData = await response.json();
+                
+                // Dynamically populate the select dropdown with all subdivisions
+                const selectEl = document.getElementById('subdivision-select');
+                selectEl.innerHTML = ''; // Clear hardcoded values
+                
+                const subdivisions = Object.keys(dbData).sort();
+                subdivisions.forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = sub;
+                    opt.innerText = sub;
+                    selectEl.appendChild(opt);
+                });
+                
+                // Select default region
+                if (subdivisions.includes('MADHYA MAHARASHTRA')) {
+                    currentRegion = 'MADHYA MAHARASHTRA';
+                } else {
+                    currentRegion = subdivisions[0];
+                }
+                selectEl.value = currentRegion;
+                
+                loadRegion(currentRegion);
+            } catch (error) {
+                console.error("Error loading dashboard data.json:", error);
+            }
+        }
+
+        // Switch regions
+        function loadRegion(regionName) {
+            currentRegion = regionName;
+            const region = dbData[regionName];
+            
+            // 1. Update historical stats cards
+            document.getElementById('stat-mean').innerHTML = `${region.annual_mean.toFixed(1)}<span>mm</span>`;
+            document.getElementById('stat-min').innerHTML = `${region.annual_min.toFixed(1)}<span>mm</span>`;
+            document.getElementById('stat-max').innerHTML = `${region.annual_max.toFixed(1)}<span>mm</span>`;
+            
+            // 2. Render Suitability Gauge
+            renderGauge(region.forecasts.gbr_future);
+            
+            // 3. Render 4-Week Sowing Calendar Cards
+            renderForecastCards(region.forecasts.future_dates, region.forecasts.gbr_future);
+            
+            // 4. Update the Active Tab Chart
+            renderChart();
+        }
+
+        // Determine Sowing Suitability logic
+        function getSowingDetails(val) {
+            if (val < 5.0) {
+                return {
+                    label: "Not Suitable (Dry Spell)",
+                    class: "badge-unsuitable",
+                    icon: "fa-solid fa-wind",
+                    color: "#ef4444",
+                    score: 10,
+                    advice: "Not suitable for sowing. High threat of dry seed desiccation. Focus on tillage, weeding, and preparing fields."
+                };
+            } else if (val >= 5.0 && val < 20.0) {
+                return {
+                    label: "Marginal Suitability",
+                    class: "badge-marginal",
+                    icon: "fa-solid fa-cloud-sun",
+                    color: "#f59e0b",
+                    score: 50,
+                    advice: "Marginally suitable. Sowing is recommended only for highly drought-resistant, deep-rooted crops (Bajra, Sorghum)."
+                };
+            } else if (val >= 20.0 && val < 50.0) {
+                return {
+                    label: "Ideal Sowing Window",
+                    class: "badge-ideal",
+                    icon: "fa-solid fa-seedling",
+                    color: "#10b981",
+                    score: 95,
+                    advice: "Primary window! Perfect moisture for cash crops (Soybeans, Cotton, Maize, Groundnut). Sow immediately!"
+                };
+            } else {
+                return {
+                    label: "High Risk (Excessive Rain)",
+                    class: "badge-unsuitable",
+                    icon: "fa-solid fa-cloud-showers-heavy",
+                    color: "#ef4444",
+                    score: 20,
+                    advice: "Delay sowing. High risk of seed washout, soil erosion, and waterlogging. Clear drainage channels immediately."
+                };
+            }
+        }
+
+        // Render Sowing Suitability Gauge
+        function renderGauge(futureForecast) {
+            // Sowing suitability is evaluated on the maximum or average potential of upcoming weeks.
+            // For a dry period, we average the forecast.
+            const averageFuture = futureForecast.reduce((a, b) => a + b, 0) / futureForecast.length;
+            const details = getSowingDetails(averageFuture);
+            
+            const badge = document.getElementById('sowing-badge');
+            badge.innerText = details.label;
+            badge.className = `suitability-badge ${details.class}`;
+            
+            // Adjust SVG Gauge arc
+            const arc = document.getElementById('gauge-arc');
+            const scoreText = document.getElementById('gauge-score');
+            
+            // Stroke dash offset calculation
+            // stroke-dasharray is 220 (full semicircle is about 125, but 220 leaves padding)
+            // Stroke-dashoffset goes from 220 (0% fill) to 95 (100% fill)
+            const percent = details.score / 100;
+            const offset = 220 - (125 * percent);
+            
+            arc.style.strokeDashoffset = offset;
+            arc.style.stroke = details.color;
+            scoreText.innerText = `${details.score}%`;
+        }
+
+        // Render Forecast Cards
+        function renderForecastCards(dates, values) {
+            const container = document.getElementById('forecast-cards-container');
+            container.innerHTML = '';
+            
+            dates.forEach((dateStr, index) => {
+                const date = new Date(dateStr);
+                const formatDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const rainVal = values[index];
+                const details = getSowingDetails(rainVal);
+                
+                let iconClass = "fa-solid fa-droplet";
+                if (rainVal < 5.0) iconClass = "fa-solid fa-sun";
+                else if (rainVal >= 5.0 && rainVal < 20.0) iconClass = "fa-solid fa-cloud-rain";
+                else if (rainVal >= 20.0 && rainVal < 50.0) iconClass = "fa-solid fa-cloud-showers-water";
+                else iconClass = "fa-solid fa-cloud-showers-heavy";
+                
+                const cardHtml = `
+                    <div class="forecast-card">
+                        <div class="forecast-header">
+                            <span class="week-num">Week ${index + 1}</span>
+                            <span class="forecast-date">${formatDay}</span>
+                        </div>
+                        <div class="forecast-body">
+                            <i class="${iconClass} forecast-icon" style="color: ${details.color}"></i>
+                            <div class="forecast-rain-value">
+                                <span class="rain-num">${rainVal.toFixed(2)}</span>
+                                <span class="rain-unit">mm predicted</span>
+                            </div>
+                        </div>
+                        <div class="card-suitability-badge ${details.class}">${details.label.split(' ')[0]}</div>
+                        <div class="forecast-advice">${details.advice}</div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        // Tab Switching
+        function switchTab(tabName) {
+            activeTab = tabName;
+            
+            document.getElementById('tab-test').className = tabName === 'test' ? 'tab-btn active' : 'tab-btn';
+            document.getElementById('tab-climate').className = tabName === 'climate' ? 'tab-btn active' : 'tab-btn';
+            
+            renderChart();
+        }
+
+        // Render Chart using Chart.js
+        function renderChart() {
+            const region = dbData[currentRegion];
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            if (activeTab === 'test') {
+                // Test Set comparison chart
+                const testDates = region.forecasts.test_dates.slice(-52); // Show last 1 year for readability
+                const actuals = region.forecasts.test_actuals.slice(-52);
+                const arima = region.forecasts.arima_test_preds.slice(-52);
+                const gbr = region.forecasts.gbr_test_preds.slice(-52);
+                
+                chartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: testDates,
+                        datasets: [
+                            {
+                                label: 'Actual Rainfall (mm)',
+                                data: actuals,
+                                borderColor: '#1b4d3e',
+                                backgroundColor: 'rgba(27, 77, 62, 0.05)',
+                                borderWidth: 2,
+                                pointRadius: 2,
+                                fill: true,
+                                tension: 0.15
+                            },
+                            {
+                                label: 'Gradient Boosting Forecast (ML)',
+                                data: gbr,
+                                borderColor: '#12b886',
+                                backgroundColor: 'transparent',
+                                borderDash: [4, 4],
+                                borderWidth: 2.5,
+                                pointRadius: 0,
+                                tension: 0.15
+                            },
+                            {
+                                label: 'ARIMA Forecast (Classical)',
+                                data: arima,
+                                borderColor: '#e67e22',
+                                backgroundColor: 'transparent',
+                                borderDash: [6, 2],
+                                borderWidth: 1.8,
+                                pointRadius: 0,
+                                tension: 0.05
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#a3b8b0',
+                                    font: { family: 'Inter', weight: 500 }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                                ticks: { color: '#a3b8b0', font: { size: 10 } }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                                ticks: { color: '#a3b8b0' },
+                                title: { display: true, text: 'Rainfall Depth (mm)', color: '#a3b8b0' }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Monthly Climatological Normals chart
+                const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                const normals = months.map(m => region.monthly_normals[m]);
+                
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: months,
+                        datasets: [{
+                            label: 'Monthly Mean Climatology Normal (1901-2015)',
+                            data: normals,
+                            backgroundColor: 'rgba(34, 166, 242, 0.45)',
+                            borderColor: '#22a6f2',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#a3b8b0' }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#a3b8b0' }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                                ticks: { color: '#a3b8b0' },
+                                title: { display: true, text: 'Rainfall Depth (mm)', color: '#a3b8b0' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Initialize dashboard on load
+        window.onload = loadDashboard;
+    </script>
+</body>
+</html>
